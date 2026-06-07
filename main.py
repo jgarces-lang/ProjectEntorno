@@ -1,10 +1,9 @@
-# main.py — versión nueva
 from pydantic import BaseModel
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from sqlmodel import Field, Session, SQLModel, create_engine, select, Relationship
+from sqlmodel import Field, Session, SQLModel, create_engine, select
 from typing import Annotated
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
@@ -14,58 +13,64 @@ import os
 
 load_dotenv()
 
-from google import genai
-
-
-def format_role(role: str) -> str:
-    return "Usted" if role == "user" else "Chatbot" # comment 2
-
 
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
 
 # ── Modelos ──────────────────────────────────────────────
-class User(SQLModel, table=True):
-      id: int | None = Field(default=None, primary_key=True)
-      username: str = Field(unique=True, index=True)
-      password_hash: str
-      conversations: list["Conversation"] = Relationship(back_populates="user")
-
-class Conversation(SQLModel, table=True):
+class Categoria(SQLModel, table=True):
+    __tablename__ = "categorias"
     id: int | None = Field(default=None, primary_key=True)
-    title: str = Field(default="Nueva conversación")
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    messages: list["Message"] = Relationship(back_populates="conversation")
-    user_id: int | None = Field(default=None, foreign_key="user.id")
-    user: User | None = Relationship(back_populates="conversations")
+    nombre: str = Field(unique=True, index=True)
 
-class Message(SQLModel, table=True):
+
+class Producto(SQLModel, table=True):
+    __tablename__ = "productos"
     id: int | None = Field(default=None, primary_key=True)
-    conversation_id: int = Field(foreign_key="conversation.id")
-    role: str  # "user" o "model"
-    content: str
+    nombre: str = Field(index=True)
+    precio: float
+    descripcion: str = Field(default="")
+    categoria_id: int | None = Field(default=None, foreign_key="categorias.id")
+    imagen_url: str = Field(default="")
+    activo: bool = Field(default=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    conversation: Conversation | None = Relationship(back_populates="messages")
 
 
-# ── Schemas de respuesta (separar tabla de lo que devolvemos)!!!!!! ──
-class MessageOut(SQLModel):
+class Admin(SQLModel, table=True):
+    __tablename__ = "admins"
+    id: int | None = Field(default=None, primary_key=True)
+    username: str = Field(unique=True, index=True)
+    password_hash: str
+
+
+# ── Schemas ──────────────────────────────────────────────
+class ProductoOut(SQLModel):
     id: int
-    role: str
-    content: str
-    created_at: datetime
+    nombre: str
+    precio: float
+    descripcion: str
+    categoria_id: int | None
+    categoria_nombre: str | None = None
+    imagen_url: str
+    activo: bool
 
 
-class ConversationOut(SQLModel):
-    id: int
-    title: str
-    created_at: datetime
+class ProductoCreate(BaseModel):
+    nombre: str
+    precio: float
+    descripcion: str = ""
+    categoria_id: int | None = None
+    imagen_url: str = ""
 
 
-class RegisterRequest(BaseModel):
-    username: str
-    password: str
+class ProductoUpdate(BaseModel):
+    nombre: str | None = None
+    precio: float | None = None
+    descripcion: str | None = None
+    categoria_id: int | None = None
+    imagen_url: str | None = None
+    activo: bool | None = None
 
 
 class LoginRequest(BaseModel):
@@ -73,26 +78,56 @@ class LoginRequest(BaseModel):
     password: str
 
 
-class UserOut(BaseModel):
+class CategoriaOut(SQLModel):
     id: int
-    username: str
-
-
-class ConversationUpdate(BaseModel):
-    title: str
-
-
-class ChatRequest(BaseModel):
-    message: str
+    nombre: str
 
 
 # ── Base de datos ─────────────────────────────────────────
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///database.db")
+DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
+
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "admin-token-seguro")
 
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
+
+
+def seed_data():
+    with Session(engine) as session:
+        existing = session.exec(select(Categoria)).first()
+        if existing:
+            return
+        categorias = [
+            Categoria(nombre="Laptops"),
+            Categoria(nombre="Smartphones"),
+            Categoria(nombre="Audífonos"),
+            Categoria(nombre="Accesorios"),
+            Categoria(nombre="Componentes"),
+        ]
+        for cat in categorias:
+            session.add(cat)
+        session.flush()
+
+        productos = [
+            Producto(nombre="MacBook Pro 16\" M3", precio=2499.99, descripcion="Chip M3, 36GB RAM, 1TB SSD", categoria_id=1, imagen_url="https://placehold.co/400x300?text=MacBook+Pro", activo=True),
+            Producto(nombre="Dell XPS 15", precio=1899.99, descripcion="Intel i9, 32GB RAM, 1TB SSD", categoria_id=1, imagen_url="https://placehold.co/400x300?text=Dell+XPS", activo=True),
+            Producto(nombre="iPhone 15 Pro Max", precio=1299.99, descripcion="256GB, Titanio Natural", categoria_id=2, imagen_url="https://placehold.co/400x300?text=iPhone+15", activo=True),
+            Producto(nombre="Samsung Galaxy S24 Ultra", precio=1199.99, descripcion="512GB, S Pen incluido", categoria_id=2, imagen_url="https://placehold.co/400x300?text=Galaxy+S24", activo=True),
+            Producto(nombre="AirPods Pro 2", precio=249.99, descripcion="Cancelación de ruido activa, USB-C", categoria_id=3, imagen_url="https://placehold.co/400x300?text=AirPods+Pro", activo=True),
+            Producto(nombre="Sony WH-1000XM5", precio=349.99, descripcion="Audífonos inalámbricos con ANC", categoria_id=3, imagen_url="https://placehold.co/400x300?text=Sony+WH-1000XM5", activo=True),
+            Producto(nombre="Logitech MX Master 3S", precio=99.99, descripcion="Mouse ergonómico inalámbrico", categoria_id=4, imagen_url="https://placehold.co/400x300?text=MX+Master", activo=True),
+            Producto(nombre="Teclado Mecánico Keychron Q1", precio=179.99, descripcion="Teclado mecánico 75%, hot-swappable", categoria_id=4, imagen_url="https://placehold.co/400x300?text=Keychron+Q1", activo=True),
+            Producto(nombre="NVIDIA RTX 4090", precio=1799.99, descripcion="24GB GDDR6X, 4nm", categoria_id=5, imagen_url="https://placehold.co/400x300?text=RTX+4090", activo=True),
+            Producto(nombre="AMD Ryzen 9 7950X", precio=699.99, descripcion="16 núcleos, 32 hilos, 5.7GHz", categoria_id=5, imagen_url="https://placehold.co/400x300?text=Ryzen+9", activo=True),
+        ]
+        for p in productos:
+            session.add(p)
+
+        admin = Admin(username="admin", password_hash=hash_password("admin123"))
+        session.add(admin)
+        session.commit()
 
 
 def get_session():
@@ -107,6 +142,7 @@ SessionDep = Annotated[Session, Depends(get_session)]
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
+    seed_data()
     yield
 
 
@@ -118,7 +154,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -133,100 +168,116 @@ def health():
     return {"status": "ok"}
 
 
-# ── Auth ──────────────────────────────────────────────────────
-@app.post("/register", response_model=UserOut)
-def register(body: RegisterRequest, session: SessionDep):
-    existing = session.exec(select(User).where(User.username == body.username)).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="El usuario ya existe")
-    user = User(username=body.username, password_hash=hash_password(body.password))
-    session.add(user)
-    session.commit()
-    session.refresh(user)
-    return user
+# ── Endpoints Públicos ──────────────────────────────────
+@app.get("/api/categorias", response_model=list[CategoriaOut])
+def listar_categorias(session: SessionDep):
+    return session.exec(select(Categoria)).all()
 
 
-@app.post("/login", response_model=UserOut)
-def login(body: LoginRequest, session: SessionDep):
-    user = session.exec(select(User).where(User.username == body.username)).first()
-    if not user or user.password_hash != hash_password(body.password):
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
-    return user
+@app.get("/api/productos", response_model=list[ProductoOut])
+def listar_productos(
+    session: SessionDep,
+    categoria_id: int | None = Query(default=None),
+    solo_activos: bool = Query(default=True),
+):
+    query = select(Producto)
+    if solo_activos:
+        query = query.where(Producto.activo == True)
+    if categoria_id:
+        query = query.where(Producto.categoria_id == categoria_id)
+    productos = session.exec(query).all()
+    result = []
+    for p in productos:
+        cat = session.get(Categoria, p.categoria_id)
+        result.append(ProductoOut(
+            id=p.id, nombre=p.nombre, precio=p.precio,
+            descripcion=p.descripcion, categoria_id=p.categoria_id,
+            categoria_nombre=cat.nombre if cat else None,
+            imagen_url=p.imagen_url, activo=p.activo,
+        ))
+    return result
 
 
-# ── Endpoints de Conversaciones ───────────────────────────────
-@app.post("/conversations/", response_model=ConversationOut)
-def create_conversation(session: SessionDep, user_id: int | None = Query(default=None)):
-    conv = Conversation(user_id=user_id)
-    session.add(conv)
-    session.commit()
-    session.refresh(conv)
-    return conv
-
-
-@app.get("/conversations/", response_model=list[ConversationOut])
-def list_conversations(session: SessionDep, user_id: int | None = Query(default=None)):
-    query = select(Conversation)
-    if user_id:
-        query = query.where(Conversation.user_id == user_id)
-    return session.exec(query).all()
-
-
-@app.patch("/conversations/{conv_id}", response_model=ConversationOut)
-def rename_conversation(conv_id: int, body: ConversationUpdate, session: SessionDep):
-    conv = session.get(Conversation, conv_id)
-    if not conv:
-        raise HTTPException(status_code=404, detail="Conversación no encontrada")
-    conv.title = body.title
-    session.add(conv)
-    session.commit()
-    session.refresh(conv)
-    return conv
-
-
-@app.get("/conversations/{conv_id}/messages", response_model=list[MessageOut])
-def get_messages(conv_id: int, session: SessionDep):
-    conv = session.get(Conversation, conv_id)
-    if not conv:
-        raise HTTPException(status_code=404, detail="Conversación no encontrada")
-    return session.exec(select(Message).where(Message.conversation_id == conv_id)).all()
-
-
-@app.post("/conversations/{conv_id}/chat", response_model=MessageOut)
-def chat(conv_id: int, body: ChatRequest, session: SessionDep):
-    # 1. Verificar que existe la conversación
-    conv = session.get(Conversation, conv_id)
-    if not conv:
-        raise HTTPException(status_code=404, detail="Conversación no encontrada")
-
-    # 2. Guardar mensaje del usuario
-    user_msg = Message(conversation_id=conv_id, role="user", content=body.message)
-    session.add(user_msg)
-    session.commit()
-
-    # 3. Cargar historial para enviar contexto a Gemini
-    history = session.exec(
-        select(Message)
-        .where(Message.conversation_id == conv_id)
-        .order_by(Message.created_at)
-    ).all()
-
-    # 4. Llamar a Gemini con todo el historial
-    client = genai.Client()
-    gemini_history = [
-        {"role": msg.role, "parts": [{"text": "Respondeme como si fueras mi bro del alma" + msg.content}]}
-        for msg in history[:-1]  # todo excepto el último (recién guardado)
-    ]
-
-    response = client.models.generate_content(
-        model="gemini-3-flash-preview",
-        contents=gemini_history + [{"role": "user", "parts": [{"text": body.message}]}],
+@app.get("/api/producto", response_model=ProductoOut)
+def obtener_producto(session: SessionDep, id: int = Query(...)):
+    p = session.get(Producto, id)
+    if not p or not p.activo:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    cat = session.get(Categoria, p.categoria_id)
+    return ProductoOut(
+        id=p.id, nombre=p.nombre, precio=p.precio,
+        descripcion=p.descripcion, categoria_id=p.categoria_id,
+        categoria_nombre=cat.nombre if cat else None,
+        imagen_url=p.imagen_url, activo=p.activo,
     )
 
-    # 5. Guardar respuesta del modelo
-    bot_msg = Message(conversation_id=conv_id, role="model", content=response.text)
-    session.add(bot_msg)
-    session.commit()
-    session.refresh(bot_msg)
 
-    return bot_msg
+# ── Auth ─────────────────────────────────────────────────
+@app.post("/api/auth")
+def login(body: LoginRequest, session: SessionDep):
+    admin = session.exec(select(Admin).where(Admin.username == body.username)).first()
+    if not admin or admin.password_hash != hash_password(body.password):
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+    return {"id": admin.id, "username": admin.username, "token": ADMIN_TOKEN}
+
+
+def verify_admin(authorization: str | None = Header(default=None)):
+    if not authorization or authorization != f"Bearer {ADMIN_TOKEN}":
+        raise HTTPException(status_code=401, detail="No autorizado")
+    return True
+
+
+# ── Endpoints Admin ────────────────────────────────────
+@app.post("/api/admin/productos", response_model=ProductoOut)
+def crear_producto(body: ProductoCreate, session: SessionDep, auth: bool = Depends(verify_admin)):
+    if body.categoria_id:
+        cat = session.get(Categoria, body.categoria_id)
+        if not cat:
+            raise HTTPException(status_code=400, detail="Categoría no existe")
+    producto = Producto(
+        nombre=body.nombre, precio=body.precio,
+        descripcion=body.descripcion, categoria_id=body.categoria_id,
+        imagen_url=body.imagen_url,
+    )
+    session.add(producto)
+    session.commit()
+    session.refresh(producto)
+    cat = session.get(Categoria, producto.categoria_id)
+    return ProductoOut(
+        id=producto.id, nombre=producto.nombre, precio=producto.precio,
+        descripcion=producto.descripcion, categoria_id=producto.categoria_id,
+        categoria_nombre=cat.nombre if cat else None,
+        imagen_url=producto.imagen_url, activo=producto.activo,
+    )
+
+
+@app.put("/api/admin/productos/{producto_id}", response_model=ProductoOut)
+def actualizar_producto(producto_id: int, body: ProductoUpdate, session: SessionDep, auth: bool = Depends(verify_admin)):
+    producto = session.get(Producto, producto_id)
+    if not producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    if body.nombre is not None:
+        producto.nombre = body.nombre
+    if body.precio is not None:
+        producto.precio = body.precio
+    if body.descripcion is not None:
+        producto.descripcion = body.descripcion
+    if body.categoria_id is not None:
+        cat = session.get(Categoria, body.categoria_id)
+        if not cat:
+            raise HTTPException(status_code=400, detail="Categoría no existe")
+        producto.categoria_id = body.categoria_id
+    if body.imagen_url is not None:
+        producto.imagen_url = body.imagen_url
+    if body.activo is not None:
+        producto.activo = body.activo
+    session.add(producto)
+    session.commit()
+    session.refresh(producto)
+    cat = session.get(Categoria, producto.categoria_id)
+    return ProductoOut(
+        id=producto.id, nombre=producto.nombre, precio=producto.precio,
+        descripcion=producto.descripcion, categoria_id=producto.categoria_id,
+        categoria_nombre=cat.nombre if cat else None,
+        imagen_url=producto.imagen_url, activo=producto.activo,
+    )

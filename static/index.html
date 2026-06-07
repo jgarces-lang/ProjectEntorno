@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>LLM Chat</title>
+    <title>TechStore — Tienda Virtual</title>
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -11,390 +11,235 @@
         --bg:           #f8fafc;
         --surface:      #ffffff;
         --surface-2:    #f1f5f9;
-        --primary:      #6366f1;
-        --primary-dark: #4f46e5;
-        --primary-soft: #eef2ff;
+        --primary:      #2563eb;
+        --primary-dark: #1d4ed8;
+        --primary-soft: #eff6ff;
         --text:         #0f172a;
         --muted:        #64748b;
         --border:       #e2e8f0;
-        --danger:       #ef4444;
         --shadow:       0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+        --radius:       12px;
       }
 
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-        display: flex;
-        height: 100vh;
         background: var(--bg);
         color: var(--text);
-        overflow: hidden;
+        min-height: 100vh;
       }
 
-      /* ── Auth overlay ───────────────────────────────── */
-      #auth-overlay {
-        position: fixed;
-        inset: 0;
-        background: var(--bg);
+      /* ── Header ─────────────────────────────────────── */
+      header {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 1rem 2rem;
         display: flex;
         align-items: center;
-        justify-content: center;
-        z-index: 100;
-      }
-      #auth-overlay.hidden { display: none; }
-
-      .auth-card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 2rem;
-        width: 100%;
-        max-width: 380px;
-        box-shadow: 0 8px 32px rgba(0,0,0,.1);
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
       }
 
-      .auth-card h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: .3rem; color: var(--text); }
-      .auth-card > p { font-size: .88rem; color: var(--muted); margin-bottom: 1.5rem; }
+      .logo {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--primary);
+        letter-spacing: -.03em;
+      }
 
-      .auth-tabs {
+      .logo span { color: var(--text); }
+
+      nav {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        flex-wrap: wrap;
+      }
+
+      #category-filters {
         display: flex;
         gap: .4rem;
-        margin-bottom: 1.5rem;
-        background: var(--surface-2);
-        padding: .3rem;
-        border-radius: 10px;
+        flex-wrap: wrap;
       }
-      .auth-tab {
-        flex: 1;
-        padding: .5rem;
-        border: none;
-        background: transparent;
-        color: var(--muted);
-        border-radius: 7px;
-        cursor: pointer;
-        font-size: .88rem;
+
+      .cat-btn {
+        padding: .4rem .9rem;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        border-radius: 999px;
+        font-size: .83rem;
         font-weight: 500;
+        color: var(--muted);
+        cursor: pointer;
         transition: all .15s;
         font-family: inherit;
       }
-      .auth-tab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
 
-      .auth-form { display: flex; flex-direction: column; gap: .75rem; }
-      .auth-form.hidden { display: none; }
+      .cat-btn:hover { border-color: var(--primary); color: var(--primary); }
+      .cat-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
-      .auth-form input {
-        padding: .7rem .9rem;
+      .admin-link {
+        padding: .4rem .9rem;
         background: var(--surface-2);
         border: 1px solid var(--border);
-        border-radius: 10px;
-        color: var(--text);
-        font-size: .95rem;
-        outline: none;
-        transition: border-color .15s, background .15s;
-        font-family: inherit;
-      }
-      .auth-form input:focus { border-color: var(--primary); background: var(--surface); }
-      .auth-form input::placeholder { color: var(--muted); }
-
-      .auth-btn {
-        padding: .75rem;
-        background: var(--primary);
-        color: #fff;
-        border: none;
-        border-radius: 10px;
-        font-size: .95rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background .15s;
-        margin-top: .25rem;
-        font-family: inherit;
-      }
-      .auth-btn:hover { background: var(--primary-dark); }
-
-      .auth-error {
+        border-radius: 999px;
         font-size: .83rem;
-        color: var(--danger);
+        font-weight: 500;
+        color: var(--muted);
+        text-decoration: none;
+        transition: all .15s;
+        margin-left: .5rem;
+        font-family: inherit;
+      }
+
+      .admin-link:hover { color: var(--primary); border-color: var(--primary); }
+
+      /* ── Hero ────────────────────────────────────────── */
+      .hero {
         text-align: center;
-        min-height: 1rem;
+        padding: 3rem 1.5rem 2rem;
       }
 
-      /* ── Sidebar ────────────────────────────────────── */
-      #sidebar {
-        width: 260px;
+      .hero h1 {
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -.03em;
+      }
+
+      .hero p {
+        color: var(--muted);
+        margin-top: .5rem;
+        font-size: 1.05rem;
+      }
+
+      /* ── Grid ────────────────────────────────────────── */
+      .product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+        padding: 0 2rem 3rem;
+        max-width: 1280px;
+        margin: 0 auto;
+      }
+
+      .product-card {
         background: var(--surface);
-        border-right: 1px solid var(--border);
-        display: flex;
-        flex-direction: column;
-        flex-shrink: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        transition: box-shadow .2s, transform .2s;
       }
 
-      .sidebar-header {
-        padding: 1rem;
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        align-items: center;
-        gap: .75rem;
+      .product-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,.1);
+        transform: translateY(-2px);
       }
 
-      .user-avatar {
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        background: var(--primary);
+      .product-img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        background: var(--surface-2);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: 700;
-        font-size: .9rem;
-        flex-shrink: 0;
-        color: #fff;
-      }
-
-      .user-info { flex: 1; min-width: 0; }
-      .user-name  { font-size: .9rem; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .user-label { font-size: .72rem; color: var(--muted); }
-
-      #logout-btn {
-        background: none;
-        border: none;
         color: var(--muted);
-        cursor: pointer;
-        padding: .3rem .4rem;
-        border-radius: 6px;
-        font-size: .8rem;
-        transition: color .15s;
-        flex-shrink: 0;
+        font-size: .85rem;
       }
-      #logout-btn:hover { color: var(--danger); }
 
-      .sidebar-section {
-        padding: .9rem 1rem .4rem;
-        font-size: .71rem;
+      .product-img-placeholder {
+        width: 100%;
+        height: 200px;
+        background: linear-gradient(135deg, var(--primary-soft), #dbeafe);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        color: var(--primary);
+      }
+
+      .product-body {
+        padding: 1rem 1.1rem 1.1rem;
+      }
+
+      .product-category {
+        font-size: .72rem;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: .08em;
-        color: var(--muted);
-      }
-
-      #new-conv-btn {
-        margin: 0 .75rem .6rem;
-        padding: .6rem .9rem;
-        background: var(--primary-soft);
+        letter-spacing: .06em;
         color: var(--primary);
-        border: 1px solid #c7d2fe;
-        border-radius: 10px;
-        cursor: pointer;
-        font-size: .88rem;
-        font-weight: 600;
-        transition: background .15s;
-        font-family: inherit;
+        margin-bottom: .3rem;
       }
-      #new-conv-btn:hover { background: #e0e7ff; }
 
-      #conv-list { flex: 1; overflow-y: auto; padding: 0 .5rem .5rem; }
-      #conv-list::-webkit-scrollbar { width: 4px; }
-      #conv-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+      .product-name {
+        font-size: 1.05rem;
+        font-weight: 700;
+        margin-bottom: .3rem;
+      }
 
-      .conv-item {
-        padding: .6rem .75rem;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: .87rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+      .product-desc {
+        font-size: .85rem;
         color: var(--muted);
-        transition: background .1s, color .1s;
-        position: relative;
-      }
-      .conv-item:hover { background: var(--surface-2); color: var(--text); }
-      .conv-item.active { background: var(--primary-soft); color: var(--primary); font-weight: 500; }
-
-      .conv-item input.rename-input {
-        width: 100%;
-        background: var(--surface);
-        border: 1px solid var(--primary);
-        border-radius: 5px;
-        padding: .1rem .4rem;
-        font-size: .87rem;
-        color: var(--text);
-        outline: none;
-        font-family: inherit;
-      }
-
-      /* ── Main ───────────────────────────────────────── */
-      #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
-
-      #chat-header {
-        padding: .9rem 1.5rem;
-        border-bottom: 1px solid var(--border);
-        font-size: .95rem;
-        font-weight: 600;
-        color: var(--text);
-        background: var(--surface);
-        min-height: 54px;
-        display: flex;
-        align-items: center;
-      }
-
-      #chat {
-        flex: 1;
-        overflow-y: auto;
-        padding: 1.5rem;
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-      }
-      #chat::-webkit-scrollbar { width: 6px; }
-      #chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-      #empty-state {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: .6rem;
-        color: var(--muted);
-      }
-      #empty-state .empty-icon { font-size: 2.5rem; opacity: .4; }
-
-      .message { display: flex; flex-direction: column; max-width: 72%; }
-      .message.user  { align-self: flex-end;   align-items: flex-end; }
-      .message.model { align-self: flex-start; align-items: flex-start; }
-
-      .bubble {
-        padding: .75rem 1rem;
-        border-radius: 16px;
-        line-height: 1.6;
-        font-size: .94rem;
-      }
-      .message.user .bubble {
-        background: var(--primary);
-        color: #fff;
-        border-bottom-right-radius: 4px;
-      }
-      .message.model .bubble {
-        background: var(--surface);
-        color: var(--text);
-        border: 1px solid var(--border);
-        border-bottom-left-radius: 4px;
-        box-shadow: var(--shadow);
-      }
-
-      .meta { font-size: .7rem; color: var(--muted); margin-top: .25rem; }
-
-      .bubble pre  { background: #1e293b; color: #e2e8f0; padding: .75rem; border-radius: 8px; overflow-x: auto; margin: .5rem 0; }
-      .bubble code { background: var(--surface-2); padding: 2px 5px; border-radius: 4px; font-size: .85em; color: var(--primary-dark); }
-      .bubble pre code { background: transparent; padding: 0; color: #e2e8f0; }
-      .bubble p    { margin: .3rem 0; }
-      .bubble ul, .bubble ol { padding-left: 1.3rem; margin: .3rem 0; }
-
-      /* ── Composer ───────────────────────────────────── */
-      #composer {
-        padding: .9rem 1.5rem;
-        background: var(--surface);
-        border-top: 1px solid var(--border);
-        display: flex;
-        gap: .6rem;
-        align-items: flex-end;
-      }
-
-      #prompt {
-        flex: 1;
-        padding: .7rem 1rem;
-        font-size: .94rem;
-        background: var(--surface-2);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        outline: none;
-        color: var(--text);
-        resize: none;
-        min-height: 44px;
-        max-height: 140px;
-        transition: border-color .15s, background .15s;
-        font-family: inherit;
         line-height: 1.5;
+        margin-bottom: .8rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
       }
-      #prompt::placeholder { color: var(--muted); }
-      #prompt:focus { border-color: var(--primary); background: var(--surface); }
-      #prompt:disabled { opacity: .4; cursor: not-allowed; }
 
-      #send {
-        padding: 0 1.2rem;
-        background: var(--primary);
-        color: #fff;
-        border: none;
-        border-radius: 12px;
-        font-size: .94rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background .15s;
-        flex-shrink: 0;
-        height: 44px;
-        font-family: inherit;
+      .product-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
       }
-      #send:hover { background: var(--primary-dark); }
-      #send:disabled { opacity: .4; cursor: not-allowed; }
+
+      .product-price {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: var(--primary);
+      }
+
+      .product-price::before { content: '$'; }
+
+      .loading, .error-msg, .empty-msg {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: var(--muted);
+        font-size: 1.05rem;
+        grid-column: 1 / -1;
+      }
+
+      .error-msg { color: #ef4444; }
+
+      /* ── Responsive ──────────────────────────────────── */
+      @media (max-width: 640px) {
+        header { padding: .8rem 1rem; flex-direction: column; align-items: stretch; }
+        nav { justify-content: center; }
+        .product-grid { padding: 0 1rem 2rem; grid-template-columns: 1fr; }
+        .hero h1 { font-size: 1.5rem; }
+      }
     </style>
   </head>
   <body>
+    <header>
+      <div class="logo">Tech<span>Store</span></div>
+      <nav>
+        <button class="cat-btn active" data-cat="">Todas</button>
+        <div id="category-filters"></div>
+        <a href="/static/admin.html" class="admin-link">Admin</a>
+      </nav>
+    </header>
 
-    <!-- Auth -->
-    <div id="auth-overlay">
-      <div class="auth-card">
-        <h1>LLM Chat</h1>
-        <p>Ingresá para continuar</p>
-        <div class="auth-tabs">
-          <button class="auth-tab active" data-tab="login">Iniciar sesión</button>
-          <button class="auth-tab" data-tab="register">Registrarse</button>
-        </div>
+    <section class="hero">
+      <h1>Productos Tecnológicos</h1>
+      <p>Lo mejor en tecnología al mejor precio</p>
+    </section>
 
-        <form class="auth-form" id="login-form">
-          <input type="text"     id="login-username" placeholder="Usuario"     autocomplete="username"         required />
-          <input type="password" id="login-password" placeholder="Contraseña"  autocomplete="current-password" required />
-          <div class="auth-error" id="login-error"></div>
-          <button type="submit" class="auth-btn">Ingresar</button>
-        </form>
-
-        <form class="auth-form hidden" id="register-form">
-          <input type="text"     id="reg-username" placeholder="Usuario"     autocomplete="username"     required />
-          <input type="password" id="reg-password" placeholder="Contraseña"  autocomplete="new-password" required />
-          <div class="auth-error" id="reg-error"></div>
-          <button type="submit" class="auth-btn">Crear cuenta</button>
-        </form>
-      </div>
+    <div class="product-grid" id="product-grid">
+      <div class="loading">Cargando productos...</div>
     </div>
 
-    <aside id="sidebar">
-      <div class="sidebar-header">
-        <div class="user-avatar" id="user-avatar">?</div>
-        <div class="user-info">
-          <div class="user-name" id="user-name">—</div>
-          <div class="user-label">usuario</div>
-        </div>
-        <button id="logout-btn" title="Cerrar sesión">✕</button>
-      </div>
-      <div class="sidebar-section">Conversaciones</div>
-      <button id="new-conv-btn">＋ Nueva conversación</button>
-      <div id="conv-list"></div>
-    </aside>
-
-    <main id="main">
-      <div id="chat-header">Seleccioná una conversación</div>
-      <div id="chat">
-        <div id="empty-state">
-          <div class="empty-icon">💬</div>
-          <p>Seleccioná o creá una conversación</p>
-        </div>
-      </div>
-      <form id="composer" onsubmit="return false;">
-        <textarea id="prompt" placeholder="Escribe un mensaje..." autocomplete="off" disabled rows="1"></textarea>
-        <button id="send" disabled>Enviar</button>
-      </form>
-    </main>
-
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
     <script src="/static/app.js"></script>
   </body>
 </html>
