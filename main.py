@@ -83,7 +83,10 @@ class CategoriaOut(SQLModel):
     nombre: str
 
 
-# ── Base de datos ─────────────────────────────────────────
+# ── Base de datos ───────────────────────────────────────
+from dotenv import load_dotenv
+load_dotenv()
+
 DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
 
